@@ -2,8 +2,27 @@ import os
 import gradio as gr
 from huggingface_hub import InferenceClient
 
-# Retrieve the HF_TOKEN from environment variables if present
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
+def get_default_token():
+    # 1. Try to read from environment variable
+    token = os.environ.get("HF_TOKEN", "").strip()
+    if token:
+        return token
+        
+    # 2. Try to read from local files
+    for filename in ["token.txt", ".env"]:
+        try:
+            if os.path.exists(filename):
+                with open(filename, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("HF_TOKEN="):
+                            return line.split("=", 1)[1].strip()
+                        elif line.startswith("hf_"):
+                            return line
+        except Exception:
+            pass
+            
+    return ""
 
 # Custom CSS for modern glassmorphism design (More colorful layout)
 custom_css = """
@@ -337,7 +356,7 @@ html_header = """
 </div>
 """
 
-def generate_reply(email, tone, user_token, custom_points, length, language, signature):
+def generate_reply(email, tone, custom_points, length, language, signature):
     """
     Validates inputs and calls the Hugging Face InferenceClient 
     using the meta-llama/Llama-3.3-70B-Instruct model.
@@ -347,15 +366,12 @@ def generate_reply(email, tone, user_token, custom_points, length, language, sig
     if not email or not email.strip():
         return "Error: Received email is empty. Please enter an email in the middle panel."
         
-    # Check UI token input first, fall back to environment variable
-    token = user_token.strip() if user_token else os.environ.get("HF_TOKEN", "").strip()
+    token = get_default_token()
     if not token:
         return (
             "Error: Hugging Face API key is missing.\n\n"
-            "To generate replies, you must:\n"
-            "1. Enter your token in the '🔑 API Access' field at the top-left.\n"
-            "2. OR configure the environment variable HF_TOKEN in your terminal.\n\n"
-            "Get your API token at: https://huggingface.co/settings/tokens"
+            "To generate replies, you must configure the environment variable HF_TOKEN "
+            "in your Hugging Face Space settings or locally."
         )
 
     # Compile size constraints
@@ -433,17 +449,9 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
     gr.HTML(html_header)
         
     with gr.Row(elem_id="main-container"):
-        # Column 1: API Setup & Customization Parameters (Using scale=1, which is integer)
+        # Column 1: Customization Parameters (Using scale=1, which is integer)
         with gr.Column(elem_id="settings-column", scale=1):
-            gr.HTML("<h3 class='panel-title'>🔑 API Access</h3>")
-            hf_token_input = gr.Textbox(
-                label="Hugging Face Token (HF_TOKEN)",
-                placeholder="Paste your hf_... token here",
-                type="password",
-                value=HF_TOKEN,
-                elem_id="hf-token-input"
-            )
-            gr.HTML("<h3 class='panel-title' style='margin-top:20px;'>🎨 Customization</h3>")
+            gr.HTML("<h3 class='panel-title'>🎨 Customization</h3>")
             tone = gr.Dropdown(
                 choices=["Professional", "Friendly", "Formal", "Polite", "Customer Support", "Apology", "Thank You", "Technical", "Sales", "Urgent", "Informational"],
                 value="Professional",
@@ -628,10 +636,10 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
     # Event binding for Generation
     generate_btn.click(
         fn=generate_reply,
-        inputs=[email_input, tone, hf_token_input, custom_points, length, language, signature],
+        inputs=[email_input, tone, custom_points, length, language, signature],
         outputs=output,
         js="""
-        (email, tone, token, custom_points, length, language, signature) => {
+        (email, tone, custom_points, length, language, signature) => {
             if (!email || !email.trim()) {
                 window.showToast("Please enter a received email first!", "error");
                 const validationMsg = document.getElementById("input-validation-msg");
@@ -646,7 +654,7 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
                 btn.classList.add("loading");
                 btn.textContent = "⏳ Generating Reply...";
             }
-            return [email, tone, token, custom_points, length, language, signature];
+            return [email, tone, custom_points, length, language, signature];
         }
         """
     ).then(
