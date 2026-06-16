@@ -332,7 +332,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 # Header HTML
 html_header = """
 <div class="header-container">
-    <h1>AI Email Reply Generator</h1>
+    <h1>AI Email Reply Gen</h1>
     <p>Generate highly-customized, tone-perfect email replies in seconds using Llama-3.3</p>
 </div>
 """
@@ -428,7 +428,7 @@ Make sure the reply:
     )
 
 # Gradio Block layout definition
-with gr.Blocks(title="AI Email Reply Generator") as demo:
+with gr.Blocks(title="AI Email Reply Gen") as demo:
     # Render custom HTML Header
     gr.HTML(html_header)
         

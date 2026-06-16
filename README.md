@@ -1,5 +1,5 @@
 ---
-title: Email Reply Generator
+title: Email Reply Gen
 emoji: 🌍
 colorFrom: purple
 colorTo: red
