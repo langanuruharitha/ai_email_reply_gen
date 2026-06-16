@@ -669,4 +669,10 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
         outputs=[email_input, custom_points, output]
     )
 if __name__ == "__main__":
-    demo.launch(css=custom_css)
+    while True:
+        try:
+            demo.launch(css=custom_css)
+            break
+        except KeyboardInterrupt:
+            print("\n[Warning] Server was interrupted. Relaunching server...")
+            continue
