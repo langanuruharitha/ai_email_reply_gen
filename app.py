@@ -130,7 +130,6 @@ body {
 .gradio-container .dropdown {
     border: none !important;
     background: transparent !important;
-    position: relative !important;
 }
 
 .gradio-container .dropdown .wrap {
@@ -138,7 +137,6 @@ body {
     border: 1px solid rgba(99, 102, 241, 0.2) !important;
     border-radius: 10px !important;
     transition: all 0.3s ease !important;
-    position: relative !important;
 }
 
 .gradio-container .dropdown .wrap:focus-within {
@@ -147,31 +145,23 @@ body {
     background: #ffffff !important;
 }
 
-.gradio-container .dropdown .options,
-.gradio-container .dropdown .list-container {
-    position: absolute !important;
-    top: 100% !important;
-    left: 0 !important;
-    width: 100% !important;
+/* Style the popover option lists globally to support body portal rendering in iframes */
+.options, .list-container {
     background: rgba(255, 255, 255, 0.98) !important;
     border: 1px solid rgba(99, 102, 241, 0.15) !important;
     border-radius: 10px !important;
     box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15) !important;
-    z-index: 9999 !important;
-    margin-top: 4px !important;
+    z-index: 99999 !important;
 }
 
-.gradio-container .dropdown .options li,
-.gradio-container .dropdown .list-container .item {
+.options li, .list-container .item {
     padding: 10px 12px !important;
     color: #0f172a !important;
     transition: all 0.2s ease !important;
 }
 
-.gradio-container .dropdown .options li:hover,
-.gradio-container .dropdown .options li.selected,
-.gradio-container .dropdown .list-container .item:hover,
-.gradio-container .dropdown .list-container .item.active {
+.options li:hover, .options li.selected,
+.list-container .item:hover, .list-container .item.active {
     background: rgba(99, 102, 241, 0.08) !important;
     color: #4f46e5 !important;
 }
