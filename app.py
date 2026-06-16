@@ -111,7 +111,7 @@ body {
 }
 
 /* Textboxes, Inputs and Dropdowns */
-.gradio-container textarea, .gradio-container input, .gradio-container select {
+.gradio-container textarea, .gradio-container input {
     background: rgba(255, 255, 255, 0.95) !important;
     border: 1px solid rgba(99, 102, 241, 0.2) !important;
     color: #0f172a !important;
@@ -120,10 +120,60 @@ body {
     transition: all 0.3s ease !important;
 }
 
-.gradio-container textarea:focus, .gradio-container input:focus, .gradio-container select:focus {
+.gradio-container textarea:focus, .gradio-container input:focus {
     border-color: var(--secondary-glow) !important;
     box-shadow: 0 0 10px var(--panel-glow) !important;
     background: #ffffff !important;
+}
+
+/* Custom Premium Styles for Gradio Dropdowns */
+.gradio-container .dropdown {
+    border: none !important;
+    background: transparent !important;
+    position: relative !important;
+}
+
+.gradio-container .dropdown .wrap {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+}
+
+.gradio-container .dropdown .wrap:focus-within {
+    border-color: var(--secondary-glow) !important;
+    box-shadow: 0 0 10px var(--panel-glow) !important;
+    background: #ffffff !important;
+}
+
+.gradio-container .dropdown .options,
+.gradio-container .dropdown .list-container {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15) !important;
+    z-index: 9999 !important;
+    margin-top: 4px !important;
+}
+
+.gradio-container .dropdown .options li,
+.gradio-container .dropdown .list-container .item {
+    padding: 10px 12px !important;
+    color: #0f172a !important;
+    transition: all 0.2s ease !important;
+}
+
+.gradio-container .dropdown .options li:hover,
+.gradio-container .dropdown .options li.selected,
+.gradio-container .dropdown .list-container .item:hover,
+.gradio-container .dropdown .list-container .item.active {
+    background: rgba(99, 102, 241, 0.08) !important;
+    color: #4f46e5 !important;
 }
 
 /* Labels */
