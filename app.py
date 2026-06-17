@@ -83,7 +83,7 @@ body {
 }
 
 /* Panel Columns styling (Vibrant border glow on hover) */
-#settings-column, #input-column, #output-column {
+.settings-column, .input-column, .output-column {
     background: rgba(255, 255, 255, 0.8) !important;
     border: 1px solid rgba(99, 102, 241, 0.15) !important;
     border-radius: 18px !important;
@@ -92,7 +92,7 @@ body {
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
 }
 
-#settings-column:hover, #input-column:hover, #output-column:hover {
+.settings-column:hover, .input-column:hover, .output-column:hover {
     border-color: var(--primary-glow) !important;
     box-shadow: 0 15px 35px var(--panel-glow) !important;
     transform: translateY(-2px);
@@ -217,7 +217,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 /* Primary Generate Button (Vibrant colorful gradient) */
-#generate-btn {
+#generate-btn-reply, #generate-btn-write {
     background: var(--btn-gradient) !important;
     color: white !important;
     border: none !important;
@@ -232,17 +232,17 @@ textarea::-webkit-scrollbar-thumb:hover {
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-#generate-btn:hover:not(.loading) {
+#generate-btn-reply:hover:not(.loading), #generate-btn-write:hover:not(.loading) {
     transform: translateY(-2px) scale(1.02) !important;
     box-shadow: 0 8px 25px rgba(219, 39, 119, 0.4) !important;
     filter: brightness(1.1);
 }
 
-#generate-btn:active:not(.loading) {
+#generate-btn-reply:active:not(.loading), #generate-btn-write:active:not(.loading) {
     transform: translateY(0) scale(1) !important;
 }
 
-#generate-btn.loading {
+#generate-btn-reply.loading, #generate-btn-write.loading {
     background: #94a3b8 !important;
     cursor: not-allowed !important;
     box-shadow: none !important;
@@ -250,7 +250,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 /* Copy and Clear Buttons */
-#copy-btn {
+#copy-btn-reply, #copy-btn-write {
     background: rgba(79, 70, 229, 0.08) !important;
     color: #4f46e5 !important;
     border: 1px solid rgba(79, 70, 229, 0.2) !important;
@@ -260,14 +260,14 @@ textarea::-webkit-scrollbar-thumb:hover {
     transition: all 0.2s ease !important;
 }
 
-#copy-btn:hover {
+#copy-btn-reply:hover, #copy-btn-write:hover {
     background: var(--btn-gradient) !important;
     border-color: transparent !important;
     color: white !important;
     transform: translateY(-1px);
 }
 
-#clear-btn {
+#clear-btn-reply, #clear-btn-write {
     background: rgba(239, 68, 68, 0.05) !important;
     color: #dc2626 !important;
     border: 1px solid rgba(239, 68, 68, 0.15) !important;
@@ -277,7 +277,7 @@ textarea::-webkit-scrollbar-thumb:hover {
     transition: all 0.2s ease !important;
 }
 
-#clear-btn:hover {
+#clear-btn-reply:hover, #clear-btn-write:hover {
     background: #dc2626 !important;
     border-color: transparent !important;
     color: white !important;
@@ -399,9 +399,7 @@ html_header = """
 def generate_reply(email, tone, custom_points, length, language, signature):
     """
     Validates inputs and calls the Hugging Face InferenceClient 
-    using the meta-llama/Llama-3.3-70B-Instruct model.
-    Attempts multiple providers (hf-inference, together, sambanova, groq, deepinfra)
-    to handle provider-specific limitations or rate limits.
+    using the meta-llama/Llama-3.3-70B-Instruct model to reply to an email.
     """
     if not email or not email.strip():
         return "Error: Received email is empty. Please enter an email in the middle panel."
@@ -414,10 +412,8 @@ def generate_reply(email, tone, custom_points, length, language, signature):
             "in your Hugging Face Space settings or locally."
         )
 
-    # Compile size constraints
     length_str = "short and concise" if length == "Short" else ("medium length" if length == "Medium" else "detailed and thorough")
 
-    # Structure the prompt for the LLM based on user constraints
     prompt = f"""Write an email reply for the email below.
 
 Email Details & Constraints:
@@ -445,7 +441,6 @@ Make sure the reply:
 6. Does not contain any conversational intro/outro or meta-commentary outside of the email itself.
 """
 
-    # List of text-generation providers supporting meta-llama/Llama-3.3-70B-Instruct
     providers = ["hf-inference", "together", "sambanova", "groq", "deepinfra"]
     errors = []
 
@@ -471,10 +466,91 @@ Make sure the reply:
             errors.append(f"{provider}: {str(e)}")
             continue
 
-    # If all providers failed, output detailed logs
     error_details = "\n".join(errors)
     return (
         "API Error: Failed to generate reply using Llama-3.3-70B-Instruct.\n\n"
+        "Attempted providers returned the following errors:\n"
+        f"{error_details}\n\n"
+        "Please check:\n"
+        "1. Is your Hugging Face API token valid and active?\n"
+        "2. Does your token have access to the Hugging Face Serverless API?\n"
+        "3. Are you connected to the internet?"
+    )
+
+def write_new_email(topic, tone, custom_points, length, language, signature, recipient):
+    """
+    Validates inputs and calls the Hugging Face InferenceClient
+    using the meta-llama/Llama-3.3-70B-Instruct model to write a fresh email.
+    """
+    if not topic or not topic.strip():
+        return "Error: Topic/Subject is empty. Please enter what the email is about in the middle panel."
+        
+    token = get_default_token()
+    if not token:
+        return (
+            "Error: Hugging Face API key is missing.\n\n"
+            "To write emails, you must configure the environment variable HF_TOKEN "
+            "in your Hugging Face Space settings or locally."
+        )
+
+    length_str = "short and concise" if length == "Short" else ("medium length" if length == "Medium" else "detailed and thorough")
+
+    prompt = f"""Write a new email from scratch based on the topic and details below.
+
+Email Details & Constraints:
+- Topic/Subject: {topic.strip()}
+- Tone: {tone}
+- Target Length: {length_str}
+- Email Language: {language}
+"""
+
+    if recipient and recipient.strip():
+        prompt += f"- Recipient Name/Context: {recipient.strip()}\n"
+
+    if custom_points and custom_points.strip():
+        prompt += f"- Key Points/Details to Include:\n{custom_points.strip()}\n"
+        
+    if signature and signature.strip():
+        prompt += f"- Sign off the email as: {signature.strip()}\n"
+        
+    prompt += f"""
+Make sure the email:
+1. Perfectly matches the requested tone ({tone}).
+2. Addresses the topic and incorporates all the specified key points.
+3. Includes a suitable subject line, greeting, and custom signature (if provided).
+4. Is written in {language}.
+5. Is grammatically correct and formatted as a professional email.
+6. Does not contain any conversational intro/outro or meta-commentary outside of the email itself.
+"""
+
+    providers = ["hf-inference", "together", "sambanova", "groq", "deepinfra"]
+    errors = []
+
+    for provider in providers:
+        try:
+            client = InferenceClient(
+                provider=provider,
+                api_key=token
+            )
+            
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-3.3-70B-Instruct",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=800
+            )
+            
+            email = response.choices[0].message.content
+            if email and email.strip():
+                return email.strip()
+        except Exception as e:
+            errors.append(f"{provider}: {str(e)}")
+            continue
+
+    error_details = "\n".join(errors)
+    return (
+        "API Error: Failed to write email using Llama-3.3-70B-Instruct.\n\n"
         "Attempted providers returned the following errors:\n"
         f"{error_details}\n\n"
         "Please check:\n"
@@ -488,79 +564,155 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
     # Render custom HTML Header
     gr.HTML(html_header)
         
-    with gr.Row(elem_id="main-container"):
-        # Column 1: Customization Parameters (Using scale=1, which is integer)
-        with gr.Column(elem_id="settings-column", scale=1):
-            gr.HTML("<h3 class='panel-title'>🎨 Customization</h3>")
-            tone = gr.Dropdown(
-                choices=["Professional", "Friendly", "Formal", "Polite", "Customer Support", "Apology", "Thank You", "Technical", "Sales", "Urgent", "Informational"],
-                value="Professional",
-                label="Reply Tone",
-                elem_id="tone-dropdown"
-            )
-            
-            length = gr.Radio(
-                choices=["Short", "Medium", "Long"],
-                value="Medium",
-                label="Reply Length",
-                elem_id="length-radio"
-            )
-            
-            language = gr.Dropdown(
-                choices=["English", "Spanish", "French", "German", "Japanese", "Chinese", "Italian", "Portuguese", "Korean"],
-                value="English",
-                label="Reply Language",
-                elem_id="language-dropdown"
-            )
-            
-            signature = gr.Textbox(
-                label="Email Signature",
-                placeholder="e.g., John Doe, Customer Success Manager",
-                elem_id="signature-input"
-            )
-            
-        # Column 2: Inputs
-        with gr.Column(elem_id="input-column", scale=1):
-            gr.HTML("<h3 class='panel-title'>✉️ Received Email</h3>")
-            email_input = gr.Textbox(
-                lines=8,
-                label="Email Body",
-                placeholder="Paste the email you received here...",
-                elem_id="email-input"
-            )
-            
-            # Interactive Character Counter + Validation Label
-            gr.HTML("""
-            <div class="input-info-row">
-                <span id="char-counter">0 characters</span>
-                <span id="input-validation-msg"></span>
-            </div>
-            """)
-            
-            gr.HTML("<h3 class='panel-title' style='margin-top:10px;'>💡 Key Points to Include</h3>")
-            custom_points = gr.Textbox(
-                lines=4,
-                label="Custom Instructions (Optional)",
-                placeholder="e.g., Accept the meeting invite, but suggest Thursday at 2 PM instead of Wednesday...",
-                elem_id="custom-points-input"
-            )
-            
-            generate_btn = gr.Button("✨ Generate Reply", elem_id="generate-btn", variant="primary")
-            
-        # Column 3: Output & Features Description
-        with gr.Column(elem_id="output-column", scale=1):
-            gr.HTML("<h3 class='panel-title'>✨ Generated Reply</h3>")
-            output = gr.Textbox(
-                lines=10,
-                label="Draft Reply",
-                placeholder="AI-generated reply will appear here...",
-                elem_id="output-reply"
-            )
-            
-            with gr.Row():
-                copy_btn = gr.Button("📋 Copy Reply", elem_id="copy-btn")
-                clear_btn = gr.Button("🗑️ Clear All", elem_id="clear-btn")
+    with gr.Tabs():
+        # TAB 1: Reply to Email
+        with gr.Tab("✉️ Reply to Email"):
+            with gr.Row(elem_classes=["main-container"]):
+                # Column 1: Customization Parameters
+                with gr.Column(elem_classes=["settings-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>🎨 Customization</h3>")
+                    tone_reply = gr.Dropdown(
+                        choices=["Professional", "Friendly", "Formal", "Polite", "Customer Support", "Apology", "Thank You", "Technical", "Sales", "Urgent", "Informational"],
+                        value="Professional",
+                        label="Reply Tone"
+                    )
+                    
+                    length_reply = gr.Radio(
+                        choices=["Short", "Medium", "Long"],
+                        value="Medium",
+                        label="Reply Length"
+                    )
+                    
+                    language_reply = gr.Dropdown(
+                        choices=["English", "Spanish", "French", "German", "Japanese", "Chinese", "Italian", "Portuguese", "Korean"],
+                        value="English",
+                        label="Reply Language"
+                    )
+                    
+                    signature_reply = gr.Textbox(
+                        label="Email Signature",
+                        placeholder="e.g., John Doe, Customer Success Manager"
+                    )
+                    
+                # Column 2: Inputs
+                with gr.Column(elem_classes=["input-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>✉️ Received Email</h3>")
+                    email_input = gr.Textbox(
+                        lines=8,
+                        label="Email Body",
+                        placeholder="Paste the email you received here...",
+                        elem_id="email-input"
+                    )
+                    
+                    # Interactive Character Counter + Validation Label
+                    gr.HTML("""
+                    <div class="input-info-row">
+                        <span id="char-counter-reply">0 characters</span>
+                        <span id="input-validation-msg-reply"></span>
+                    </div>
+                    """)
+                    
+                    gr.HTML("<h3 class='panel-title' style='margin-top:10px;'>💡 Key Points to Include</h3>")
+                    custom_points_reply = gr.Textbox(
+                        lines=4,
+                        label="Custom Instructions (Optional)",
+                        placeholder="e.g., Accept the meeting invite, but suggest Thursday at 2 PM instead of Wednesday...",
+                        elem_id="custom-points-reply"
+                    )
+                    
+                    generate_btn_reply = gr.Button("✨ Generate Reply", elem_id="generate-btn-reply", variant="primary")
+                    
+                # Column 3: Output & Clear/Copy
+                with gr.Column(elem_classes=["output-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>✨ Generated Reply</h3>")
+                    output_reply = gr.Textbox(
+                        lines=10,
+                        label="Draft Reply",
+                        placeholder="AI-generated reply will appear here...",
+                        elem_id="output-reply"
+                    )
+                    
+                    with gr.Row():
+                        copy_btn_reply = gr.Button("📋 Copy Reply", elem_id="copy-btn-reply")
+                        clear_btn_reply = gr.Button("🗑️ Clear All", elem_id="clear-btn-reply")
 
+        # TAB 2: Write New Email
+        with gr.Tab("✍️ Write New Email"):
+            with gr.Row(elem_classes=["main-container"]):
+                # Column 1: Customization Parameters
+                with gr.Column(elem_classes=["settings-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>🎨 Customization</h3>")
+                    tone_write = gr.Dropdown(
+                        choices=["Professional", "Friendly", "Formal", "Polite", "Customer Support", "Apology", "Thank You", "Technical", "Sales", "Urgent", "Informational"],
+                        value="Professional",
+                        label="Email Tone"
+                    )
+                    
+                    length_write = gr.Radio(
+                        choices=["Short", "Medium", "Long"],
+                        value="Medium",
+                        label="Email Length"
+                    )
+                    
+                    language_write = gr.Dropdown(
+                        choices=["English", "Spanish", "French", "German", "Japanese", "Chinese", "Italian", "Portuguese", "Korean"],
+                        value="English",
+                        label="Email Language"
+                    )
+                    
+                    signature_write = gr.Textbox(
+                        label="Email Signature",
+                        placeholder="e.g., John Doe, Customer Success Manager"
+                    )
+                    
+                # Column 2: Inputs
+                with gr.Column(elem_classes=["input-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>💡 Email Details</h3>")
+                    topic_input = gr.Textbox(
+                        lines=5,
+                        label="What is this email about? (Topic / Subject)",
+                        placeholder="e.g., Requesting a meeting to discuss project pricing...",
+                        elem_id="topic-input"
+                    )
+                    
+                    # Interactive Character Counter + Validation Label
+                    gr.HTML("""
+                    <div class="input-info-row">
+                        <span id="char-counter-write">0 characters</span>
+                        <span id="input-validation-msg-write"></span>
+                    </div>
+                    """)
+                    
+                    recipient_input = gr.Textbox(
+                        lines=1,
+                        label="Recipient Name / Context (Optional)",
+                        placeholder="e.g., Mr. Smith, potential customer...",
+                        elem_id="recipient-input"
+                    )
+                    
+                    gr.HTML("<h3 class='panel-title' style='margin-top:10px;'>💡 Key Points to Include</h3>")
+                    custom_points_write = gr.Textbox(
+                        lines=3,
+                        label="Custom Instructions (Optional)",
+                        placeholder="e.g., Ask for his availability, mention our discount...",
+                        elem_id="custom-points-write"
+                    )
+                    
+                    generate_btn_write = gr.Button("✨ Write Email", elem_id="generate-btn-write", variant="primary")
+                    
+                # Column 3: Output & Clear/Copy
+                with gr.Column(elem_classes=["output-column"], scale=1):
+                    gr.HTML("<h3 class='panel-title'>✨ Written Email</h3>")
+                    output_write = gr.Textbox(
+                        lines=10,
+                        label="Draft Email",
+                        placeholder="AI-written email will appear here...",
+                        elem_id="output-write"
+                    )
+                    
+                    with gr.Row():
+                        copy_btn_write = gr.Button("📋 Copy Email", elem_id="copy-btn-write")
+                        clear_btn_write = gr.Button("🗑️ Clear All", elem_id="clear-btn-write")
 
     # Custom Javascript Setup on UI Load
     init_js = """
@@ -603,69 +755,90 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
             }, 3500);
         };
 
-        // 3. Poll to verify elements are injected and bind event listeners
-        const checkElements = setInterval(() => {
-            const emailTextarea = document.querySelector("#email-input textarea");
-            const outputTextarea = document.querySelector("#output-reply textarea");
-            const generateBtn = document.querySelector("#generate-btn");
-            const copyBtn = document.querySelector("#copy-btn");
-            const clearBtn = document.querySelector("#clear-btn");
-            const counterDiv = document.getElementById("char-counter");
-            const validationMsg = document.getElementById("input-validation-msg");
+        // 3. Helper to setup interactive handlers for textareas, counter and copying
+        const setupTabHandlers = (inputSelector, outputSelector, copyBtnSelector, clearBtnSelector, counterId, validationId) => {
+            const checkElements = setInterval(() => {
+                const inputTextarea = document.querySelector(inputSelector);
+                const outputTextarea = document.querySelector(outputSelector);
+                const copyBtn = document.querySelector(copyBtnSelector);
+                const clearBtn = document.querySelector(clearBtnSelector);
+                const counterDiv = document.getElementById(counterId);
+                const validationMsg = document.getElementById(validationId);
 
-            if (emailTextarea && outputTextarea) {
-                clearInterval(checkElements);
+                if (inputTextarea && outputTextarea) {
+                    clearInterval(checkElements);
 
-                // Function to update the character counter
-                const updateCounter = () => {
-                    const count = emailTextarea.value.length;
-                    if (counterDiv) {
-                        counterDiv.textContent = `${count} characters`;
-                        if (count > 2000) {
-                            counterDiv.classList.add('limit-warning');
-                        } else {
-                            counterDiv.classList.remove('limit-warning');
-                        }
-                    }
-
-                    // Auto clear validation message if user types
-                    if (count > 0 && validationMsg && validationMsg.textContent) {
-                        validationMsg.textContent = "";
-                    }
-                };
-
-                // Listen to keyboard/input events
-                emailTextarea.addEventListener("input", updateCounter);
-                
-                // Secondary interval check to catch programmatic state updates
-                setInterval(updateCounter, 150);
-
-                // Bind custom client side Copy functionality
-                if (copyBtn) {
-                    copyBtn.onclick = (e) => {
-                        e.preventDefault();
-                        const reply = outputTextarea.value;
-                        if (!reply || !reply.trim() || reply.startsWith("AI-generated reply will appear")) {
-                            window.showToast("Nothing to copy yet!", "warning");
-                            return;
+                    // Function to update the character counter
+                    const updateCounter = () => {
+                        const count = inputTextarea.value.length;
+                        if (counterDiv) {
+                            counterDiv.textContent = `${count} characters`;
+                            if (count > 2000) {
+                                counterDiv.classList.add('limit-warning');
+                            } else {
+                                counterDiv.classList.remove('limit-warning');
+                            }
                         }
 
-                        navigator.clipboard.writeText(reply).then(() => {
-                            window.showToast("Reply copied to clipboard!", "success");
-                        }).catch(err => {
-                            window.showToast("Failed to copy. Please select and copy manually.", "error");
-                        });
+                        // Auto clear validation message if user types
+                        if (count > 0 && validationMsg && validationMsg.textContent) {
+                            validationMsg.textContent = "";
+                        }
                     };
-                }
 
-                // Clear Button Trigger message
-                if (clearBtn) {
-                    clearBtn.addEventListener("click", () => {
-                        window.showToast("Cleared inputs!", "info");
-                    });
+                    // Listen to keyboard/input events
+                    inputTextarea.addEventListener("input", updateCounter);
+                    
+                    // Secondary interval check to catch programmatic state updates
+                    setInterval(updateCounter, 150);
+
+                    // Bind Copy functionality
+                    if (copyBtn) {
+                        copyBtn.onclick = (e) => {
+                            e.preventDefault();
+                            const val = outputTextarea.value;
+                            if (!val || !val.trim() || val.startsWith("AI-generated") || val.startsWith("AI-written")) {
+                                window.showToast("Nothing to copy yet!", "warning");
+                                return;
+                            }
+
+                            navigator.clipboard.writeText(val).then(() => {
+                                window.showToast("Copied to clipboard!", "success");
+                            }).catch(err => {
+                                window.showToast("Failed to copy. Please select and copy manually.", "error");
+                            });
+                        };
+                    }
+
+                    // Clear Button Trigger message
+                    if (clearBtn) {
+                        clearBtn.addEventListener("click", () => {
+                            window.showToast("Cleared inputs!", "info");
+                        });
+                    }
                 }
-            }
-        }, 100);
+            }, 100);
+        };
+
+        // Setup handlers for Tab 1 (Reply to Email)
+        setupTabHandlers(
+            "#email-input textarea",
+            "#output-reply textarea",
+            "#copy-btn-reply",
+            "#clear-btn-reply",
+            "char-counter-reply",
+            "input-validation-msg-reply"
+        );
+
+        // Setup handlers for Tab 2 (Write New Email)
+        setupTabHandlers(
+            "#topic-input textarea",
+            "#output-write textarea",
+            "#copy-btn-write",
+            "#clear-btn-write",
+            "char-counter-write",
+            "input-validation-msg-write"
+        );
     }
     """
 
@@ -673,23 +846,23 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
     demo.load(js=init_js)
 
 
-    # Event binding for Generation
-    generate_btn.click(
+    # Event binding for Tab 1 Generation
+    generate_btn_reply.click(
         fn=generate_reply,
-        inputs=[email_input, tone, custom_points, length, language, signature],
-        outputs=output,
+        inputs=[email_input, tone_reply, custom_points_reply, length_reply, language_reply, signature_reply],
+        outputs=output_reply,
         js="""
         (email, tone, custom_points, length, language, signature) => {
             if (!email || !email.trim()) {
                 window.showToast("Please enter a received email first!", "error");
-                const validationMsg = document.getElementById("input-validation-msg");
+                const validationMsg = document.getElementById("input-validation-msg-reply");
                 if (validationMsg) {
                     validationMsg.textContent = "Email is required";
                 }
                 throw new Error("Validation failed: Email input is empty");
             }
             
-            const btn = document.querySelector("#generate-btn");
+            const btn = document.querySelector("#generate-btn-reply");
             if (btn) {
                 btn.classList.add("loading");
                 btn.textContent = "⏳ Generating Reply...";
@@ -701,7 +874,7 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
         fn=None,
         js="""
         () => {
-            const btn = document.querySelector("#generate-btn");
+            const btn = document.querySelector("#generate-btn-reply");
             if (btn) {
                 btn.classList.remove("loading");
                 btn.textContent = "✨ Generate Reply";
@@ -711,11 +884,57 @@ with gr.Blocks(title="AI Email Reply Gen") as demo:
     )
 
     # Clear button action (returns empty string for inputs & outputs, leaves key, signature, etc.)
-    clear_btn.click(
+    clear_btn_reply.click(
         fn=lambda: ("", "", ""),
         inputs=None,
-        outputs=[email_input, custom_points, output]
+        outputs=[email_input, custom_points_reply, output_reply]
     )
+
+
+    # Event binding for Tab 2 Generation
+    generate_btn_write.click(
+        fn=write_new_email,
+        inputs=[topic_input, tone_write, custom_points_write, length_write, language_write, signature_write, recipient_input],
+        outputs=output_write,
+        js="""
+        (topic, tone, custom_points, length, language, signature, recipient) => {
+            if (!topic || !topic.trim()) {
+                window.showToast("Please enter a topic first!", "error");
+                const validationMsg = document.getElementById("input-validation-msg-write");
+                if (validationMsg) {
+                    validationMsg.textContent = "Topic is required";
+                }
+                throw new Error("Validation failed: Topic input is empty");
+            }
+            
+            const btn = document.querySelector("#generate-btn-write");
+            if (btn) {
+                btn.classList.add("loading");
+                btn.textContent = "⏳ Writing Email...";
+            }
+            return [topic, tone, custom_points, length, language, signature, recipient];
+        }
+        """
+    ).then(
+        fn=None,
+        js="""
+        () => {
+            const btn = document.querySelector("#generate-btn-write");
+            if (btn) {
+                btn.classList.remove("loading");
+                btn.textContent = "✨ Write Email";
+            }
+        }
+        """
+    )
+
+    # Clear button action for Tab 2
+    clear_btn_write.click(
+        fn=lambda: ("", "", "", ""),
+        inputs=None,
+        outputs=[topic_input, recipient_input, custom_points_write, output_write]
+    )
+
 if __name__ == "__main__":
     while True:
         try:
